@@ -6,6 +6,8 @@ const router = express.Router();
 const logincontroller = require('./controller/logincontroller');
 const multerConfig = require('./middleware/multermiddleware');
 const Assigncontroller = require('./controller/Assigncontroller')
+const addproject = require('./controller/addproject')
+
 // Route: GET /get-login
 router.post('/login', logincontroller.loginUser);
 router.post('/forgot-password', logincontroller.sendOtp);
@@ -28,5 +30,11 @@ router.put('/tickets/:id/verify', Assigncontroller.verifyTicket);
 router.get('/ticketsreqtime', Assigncontroller.getAllTickets);
 router.get('/getalldataa',Assigncontroller.getAllData);
 router.get('/getdashboardata',Assigncontroller.getAllDashboardData);
+
+
+
+router.post('/add', addproject.addProject);
+router.get('/all', addproject.getProjects);
+
 
 module.exports = router;
