@@ -40,50 +40,9 @@ exports.createTicket = async (req, res) => {
 
     await newTicket.save();
 
-    // ✅ Email Notification Logic
-    const assignee = await User.findOne({ gmail: assignedTo });
-
-    if (assignee && assignee.gmail) {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'jcs@jecc.ac.in',       // 🔐 Use env vars in prod
-          pass: 'gyjg bbsl gvmd mxks',  // 🔐 Use env vars in prod
-        },
-      });
-
-      const mailOptions = {
-        from: '"AnywhereWorks" <jcs@jecc.ac.in>',
-        to: assignee.gmail,
-        subject: `📌 New Ticket Assigned: TICKET-${newTicket.ticketNo}`,
-        html: `
-          <div style="font-family: Arial; padding: 20px; background-color: #f9f9f9;">
-            <h2 style="color: #1400FF;">New Ticket Assigned</h2>
-            <p>Hello <strong>${assignee.name || assignedTo}</strong>,</p>
-            <p>You have been assigned a new ticket:</p>
-            <ul>
-              <li><strong>Ticket No:</strong> TICKET-${newTicket.ticketNo}</li>
-              <li><strong>Project:</strong> ${projectName}</li>
-              <li><strong>Type:</strong> ${ticketType}</li>
-              <li><strong>Subject:</strong> ${subject}</li>
-              <li><strong>Expected Hours:</strong> ${expectedHours}</li>
-              <li><strong>Assigned By:</strong> ${assignedBy}</li>
-              <li><strong>Assigned On:</strong> ${new Date().toLocaleString()}</li>
-            </ul>
-            
-      <p style="margin-top: 20px; font-style: italic; color: #444;">
-        Thank you for your continued dedication and hard work. We appreciate your contribution to the success of our team.
-      </p>
-            <p style="font-size: 12px; color: #888;">This is an automated message from AnywhereWorks.</p>
-          </div>
-        `,
-      };
-
-      await transporter.sendMail(mailOptions);
-    }
-
+    // ✅ Just save — no mail
     return res.status(201).json({
-      message: '✅ Ticket created and email sent successfully',
+      message: '✅ Ticket created and assigned successfully',
       ticket: newTicket,
     });
 
@@ -92,6 +51,7 @@ exports.createTicket = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 // ============================
 
