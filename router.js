@@ -8,6 +8,7 @@ const multerConfig = require('./middleware/multermiddleware');
 const Assigncontroller = require('./controller/Assigncontroller')
 const addproject = require('./controller/addproject')
 const dailyWorklogController = require('./controller/dailyWorklogController')
+const RENEWAL = require('./controller/renewaldate')
 
 
 // Route: GET /get-login
@@ -45,6 +46,14 @@ router.get('/daily-worklogs', dailyWorklogController.getDailyWorklogs);
 router.post('/daily-worklogs/devstatus', dailyWorklogController.bulkUpdateDevStatus);
 router.put('/daily-worklogs/:id', dailyWorklogController.updateDailyWorklog);
 router.post("/bulk-update-hide", dailyWorklogController.bulkUpdateHide);
+// RENEWAL
+router.get('/renewals', RENEWAL.list);          // GET all renewals (with filters)
+router.get('/renewals/alerts', RENEWAL.alerts); // GET alerts (expired & due soon)
+router.get('/renewals/:id', RENEWAL.getOne);    // GET one renewal by ID
+router.post('/renewals', RENEWAL.create);       // CREATE a new renewal
+router.put('/renewals/:id', RENEWAL.update);    // UPDATE a renewal by ID
+router.delete('/renewals/:id', RENEWAL.remove); // DELETE a renewal by ID
+router.get("/send-reminders", RENEWAL.sendReminders); 
 module.exports = router;
 
 module.exports = router;

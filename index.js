@@ -6,7 +6,6 @@ const path = require('path');
 require('./connection');
 
 const Anywhereworks = express();
-
 Anywhereworks.use(cors());
 Anywhereworks.use(express.json());
 
