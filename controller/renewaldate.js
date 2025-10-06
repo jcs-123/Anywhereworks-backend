@@ -224,59 +224,44 @@ async function sendExpiredMail(name, type, renewalDate, project, daysOverdue) {
 // ==================================================
 // ===== Core Reminder Logic (Reusable) =====
 // ==================================================
+// =================== CORE REMINDER LOGIC ===================
 async function sendRemindersCore() {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const soon = new Date(today);
-  soon.setDate(soon.getDate() + 15); // next 15 days
+  today.setHours(0, 0, 0, 0); // normalize today to 00:00
 
   try {
-    // Get ALL renewals first to debug
     const allRenewals = await Renewal.find().lean();
     console.log(`📊 Total renewals in database: ${allRenewals.length}`);
-    
-    allRenewals.forEach(record => {
-      const parsedDate = parseDate(record.renewalDate);
-      console.log(`   - ${record.name}: ${record.renewalDate} → Parsed as: ${parsedDate.toLocaleDateString('en-GB')}`);
-    });
-
-    // Find upcoming renewals (within next 15 days) using proper date parsing
-    const upcomingRenewals = allRenewals.filter(record => {
-      const recordDate = parseDate(record.renewalDate);
-      return recordDate >= today && recordDate <= soon;
-    });
-
-    // Find expired renewals (past due) using proper date parsing
-    const expiredRenewals = allRenewals.filter(record => {
-      const recordDate = parseDate(record.renewalDate);
-      return recordDate < today;
-    });
-
-    console.log(`🔎 Found ${upcomingRenewals.length} upcoming renewals and ${expiredRenewals.length} expired renewals`);
 
     let upcomingCount = 0;
     let expiredCount = 0;
 
-    // Send emails for upcoming renewals
-    for (const r of upcomingRenewals) {
-      const recordDate = parseDate(r.renewalDate);
-      const daysLeft = Math.ceil((recordDate - today) / (1000 * 60 * 60 * 24));
-      await sendUpcomingMail(r.name, r.type, r.renewalDate, r.project, daysLeft);
-      upcomingCount++;
-    }
+    for (const r of allRenewals) {
+      // Skip if already renewed
+      if (r.isRenewed) continue;
 
-    // Send emails for expired renewals
-    for (const r of expiredRenewals) {
       const recordDate = parseDate(r.renewalDate);
-      const daysOverdue = Math.ceil((today - recordDate) / (1000 * 60 * 60 * 24));
-      await sendExpiredMail(r.name, r.type, r.renewalDate, r.project, daysOverdue);
-      expiredCount++;
+      const diffDays = Math.ceil((recordDate - today) / (1000 * 60 * 60 * 24)); // days difference
+
+      // =================== UPCOMING RENEWALS ===================
+      // Send daily reminder if 0 < diffDays <= 15
+      if (diffDays > 0 && diffDays <= 15) {
+        await sendUpcomingMail(r.name, r.type, r.renewalDate, r.project, diffDays);
+        upcomingCount++;
+      }
+
+      // =================== EXPIRED RENEWALS ===================
+      // Send alert if renewal date has passed
+      if (diffDays < 0) {
+        await sendExpiredMail(r.name, r.type, r.renewalDate, r.project, Math.abs(diffDays));
+        expiredCount++;
+      }
     }
 
     console.log(`📧 ${upcomingCount} upcoming reminder mails and ${expiredCount} expired alert mails sent successfully`);
 
     return { upcoming: upcomingCount, expired: expiredCount };
+
   } catch (err) {
     console.error("❌ Reminder job error:", err.message);
     return { upcoming: 0, expired: 0 };
@@ -286,7 +271,7 @@ async function sendRemindersCore() {
 // ==================================================
 // ===== Cron Job (Every Day at 11:20 AM) =====
 // ==================================================
-cron.schedule("50 11 * * *", async () => {
+cron.schedule("10 14 * * *", async () => {
   console.log("⏰ Running daily auto reminder job at 11:20 AM...");
   await sendRemindersCore();
 });
