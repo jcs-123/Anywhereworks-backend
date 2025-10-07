@@ -24,4 +24,5 @@ Anywhereworks.get('/', (req, res) => {
 const PORT = process.env.PORT || 4000;
 Anywhereworks.listen(PORT, () => {
   console.log(`Server is running successfully at PORT ${PORT}`);
+    require('./backup'); 
 });
