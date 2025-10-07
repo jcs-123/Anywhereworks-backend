@@ -4,8 +4,6 @@ const nodemailer = require("nodemailer");
 const cron = require("node-cron");
 
 // ==================================================
-// ===== Mail Transporter (Gmail + App Password) =====
-// ==================================================
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -17,263 +15,157 @@ const transporter = nodemailer.createTransport({
 // ==================================================
 // ===== Fixed Recipients =====
 // ==================================================
+const FIXED_RECIPIENTS = [
+  "ansonneelamkavil@jecc.ac.in",
+  "debinolakkengil@jecc.ac.in",
+  "jcs@jecc.ac.in",
+];
 
- const FIXED_RECIPIENTS = [    "ansonneelamkavil@jecc.ac.in",   "debinolakkengil@jecc.ac.in",   "jcs@jecc.ac.in", ];
 // ==================================================
 // ===== Date Utility Functions =====
 // ==================================================
 function parseDate(dateString) {
   if (!dateString) return new Date();
-  
-  // If it's already a Date object
   if (dateString instanceof Date) return new Date(dateString);
-  
-  // If it's in DD/MM/YYYY format
-  if (typeof dateString === 'string' && dateString.includes('/')) {
-    const parts = dateString.split('/');
-    if (parts.length === 3) {
-      // DD/MM/YYYY format
-      const day = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1; // Months are 0-indexed
-      const year = parseInt(parts[2], 10);
-      return new Date(year, month, day);
-    }
+  if (typeof dateString === "string" && dateString.includes("/")) {
+    const [d, m, y] = dateString.split("/").map((n) => parseInt(n, 10));
+    return new Date(y, m - 1, d);
   }
-  
-  // Default Date parsing for other formats
   return new Date(dateString);
 }
 
 function formatDateForDisplay(date) {
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   });
 }
 
 // ==================================================
-// ===== Professional HTML Template for Upcoming Renewals =====
+// ===== Mail Templates =====
 // ==================================================
 function buildUpcomingTemplate(name, type, renewalDate, project, daysLeft) {
   const displayDate = formatDateForDisplay(parseDate(renewalDate));
-  
   return `
   <div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:30px;">
     <div style="max-width:600px; margin:auto; background:#fff; border-radius:10px; padding:25px; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-      
-      <h2 style="color:#1a73e8; text-align:center; margin-bottom:20px;">
-        🔔 Renewal Reminder
-      </h2>
-
-      <p style="font-size:16px; color:#333;">Dear Team,</p>
-      <p style="font-size:16px; color:#333;">
-        This is a reminder that the following renewal is approaching:
-      </p>
-
-      <table style="width:100%; border-collapse: collapse; margin:20px 0; font-size:15px;">
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Name</strong></td>
-          <td style="padding:10px; border:1px solid #ddd;">${name}</td>
-        </tr>
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Type</strong></td>
-          <td style="padding:10px; border:1px solid #ddd;">${type}</td>
-        </tr>
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Project</strong></td>
-          <td style="padding:10px; border:1px solid #ddd;">${project || "—"}</td>
-        </tr>
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Renewal Date</strong></td>
-          <td style="padding:10px; border:1px solid #ddd; color:#d93025; font-weight:bold;">
-            ${displayDate}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Days Left</strong></td>
-          <td style="padding:10px; border:1px solid #ddd; color:#d93025; font-weight:bold;">
-            ${daysLeft} days
-          </td>
-        </tr>
+      <h2 style="color:#1a73e8; text-align:center;">🔔 Renewal Reminder</h2>
+      <p style="font-size:16px;">Dear Team,</p>
+      <p>This is a reminder that the following renewal is approaching:</p>
+      <table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:15px;">
+        <tr><td><b>Name</b></td><td>${name}</td></tr>
+        <tr><td><b>Type</b></td><td>${type}</td></tr>
+        <tr><td><b>Project</b></td><td>${project || "—"}</td></tr>
+        <tr><td><b>Renewal Date</b></td><td><b style="color:#d93025">${displayDate}</b></td></tr>
+        <tr><td><b>Days Left</b></td><td><b style="color:#d93025">${daysLeft} days</b></td></tr>
       </table>
-
-      <p style="font-size:16px; color:#d93025; font-weight:bold; text-align:center;">
-        ⚠️ Please ensure this renewal is completed before the due date.
-      </p>
-
-      <p style="margin-top:30px; font-size:15px; color:#555;">
-        Regards,<br/>
-        <strong>Renewal Tracker System</strong>
-      </p>
-
-      <hr style="margin:25px 0; border:0; border-top:1px solid #eee;"/>
-      <small style="display:block; text-align:center; color:#777;">
-        This is an automated email generated by Renewal Tracker.
-      </small>
+      <p style="color:#d93025; font-weight:bold; text-align:center;">⚠️ Please ensure renewal before due date.</p>
+      <p>Regards,<br/><b>Renewal Tracker System</b></p>
+      <hr/><small style="display:block; text-align:center; color:#777;">Automated Email — Do Not Reply</small>
     </div>
-  </div>
-  `;
+  </div>`;
 }
 
-// ==================================================
-// ===== Professional HTML Template for Expired Renewals =====
-// ==================================================
 function buildExpiredTemplate(name, type, renewalDate, project, daysOverdue) {
   const displayDate = formatDateForDisplay(parseDate(renewalDate));
-  
   return `
   <div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:30px;">
     <div style="max-width:600px; margin:auto; background:#fff; border-radius:10px; padding:25px; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
-      
-      <h2 style="color:#e84118; text-align:center; margin-bottom:20px;">
-        🚨 EXPIRED Renewal Alert
-      </h2>
-
-      <p style="font-size:16px; color:#333;">Dear Team,</p>
-      <p style="font-size:16px; color:#333;">
-        <strong style="color:#e84118;">URGENT:</strong> The following renewal has expired and requires immediate attention:
-      </p>
-
-      <table style="width:100%; border-collapse: collapse; margin:20px 0; font-size:15px;">
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Name</strong></td>
-          <td style="padding:10px; border:1px solid #ddd;">${name}</td>
-        </tr>
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Type</strong></td>
-          <td style="padding:10px; border:1px solid #ddd;">${type}</td>
-        </tr>
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Project</strong></td>
-          <td style="padding:10px; border:1px solid #ddd;">${project || "—"}</td>
-        </tr>
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Renewal Date</strong></td>
-          <td style="padding:10px; border:1px solid #ddd; color:#e84118; font-weight:bold;">
-            ${displayDate}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:10px; border:1px solid #ddd; background:#f9f9f9;"><strong>Status</strong></td>
-          <td style="padding:10px; border:1px solid #ddd; color:#e84118; font-weight:bold;">
-            EXPIRED (${daysOverdue} days overdue)
-          </td>
-        </tr>
+      <h2 style="color:#e84118; text-align:center;">🚨 EXPIRED Renewal Alert</h2>
+      <p>Dear Team,</p>
+      <p><b style="color:#e84118;">URGENT:</b> The following renewal has expired and needs attention:</p>
+      <table style="width:100%; border-collapse:collapse; margin:20px 0; font-size:15px;">
+        <tr><td><b>Name</b></td><td>${name}</td></tr>
+        <tr><td><b>Type</b></td><td>${type}</td></tr>
+        <tr><td><b>Project</b></td><td>${project || "—"}</td></tr>
+        <tr><td><b>Renewal Date</b></td><td><b style="color:#e84118">${displayDate}</b></td></tr>
+        <tr><td><b>Status</b></td><td><b style="color:#e84118">EXPIRED (${daysOverdue} days overdue)</b></td></tr>
       </table>
-
-      <p style="font-size:16px; color:#e84118; font-weight:bold; text-align:center;">
-        🚨 IMMEDIATE ACTION REQUIRED! Please renew this as soon as possible.
-      </p>
-
-      <p style="margin-top:30px; font-size:15px; color:#555;">
-        Regards,<br/>
-        <strong>Renewal Tracker System</strong>
-      </p>
-
-      <hr style="margin:25px 0; border:0; border-top:1px solid #eee;"/>
-      <small style="display:block; text-align:center; color:#777;">
-        This is an automated email generated by Renewal Tracker.
-      </small>
+      <p style="color:#e84118; font-weight:bold; text-align:center;">🚨 IMMEDIATE ACTION REQUIRED!</p>
+      <p>Regards,<br/><b>Renewal Tracker System</b></p>
+      <hr/><small style="display:block; text-align:center; color:#777;">Automated Email — Do Not Reply</small>
     </div>
-  </div>
-  `;
+  </div>`;
 }
 
 // ==================================================
 // ===== Mail Functions =====
 // ==================================================
 async function sendUpcomingMail(name, type, renewalDate, project, daysLeft) {
-  try {
-    const displayDate = formatDateForDisplay(parseDate(renewalDate));
-    const subject = `Reminder: Renewal for ${name} (${type}) due in ${daysLeft} days (${displayDate})`;
-    const html = buildUpcomingTemplate(name, type, renewalDate, project, daysLeft);
+  const displayDate = formatDateForDisplay(parseDate(renewalDate));
+  const subject = `Reminder: Renewal for ${name} (${type}) due in ${daysLeft} days (${displayDate})`;
+  const html = buildUpcomingTemplate(name, type, renewalDate, project, daysLeft);
 
-    await transporter.sendMail({
-      from: `"Renewal Reminder" <jcs@jecc.ac.in>`,
-      to: FIXED_RECIPIENTS,
-      subject,
-      html,
-    });
+  await transporter.sendMail({
+    from: `"Renewal Reminder" <jcs@jecc.ac.in>`,
+    to: FIXED_RECIPIENTS,
+    subject,
+    html,
+  });
 
-    console.log(`✅ Upcoming mail sent for ${name} (${type}) - ${daysLeft} days left (Due: ${displayDate})`);
-  } catch (err) {
-    console.error("❌ Upcoming mail error:", err.message);
-  }
+  console.log(`✅ Sent upcoming reminder: ${name} (${type}) due in ${daysLeft} days`);
 }
 
 async function sendExpiredMail(name, type, renewalDate, project, daysOverdue) {
-  try {
-    const displayDate = formatDateForDisplay(parseDate(renewalDate));
-    const subject = `URGENT: Renewal for ${name} (${type}) EXPIRED ${daysOverdue} days ago (${displayDate})`;
-    const html = buildExpiredTemplate(name, type, renewalDate, project, daysOverdue);
+  const displayDate = formatDateForDisplay(parseDate(renewalDate));
+  const subject = `URGENT: Renewal for ${name} (${type}) EXPIRED ${daysOverdue} days ago (${displayDate})`;
+  const html = buildExpiredTemplate(name, type, renewalDate, project, daysOverdue);
 
-    await transporter.sendMail({
-      from: `"Renewal Alert" <jcs@jecc.ac.in>`,
-      to: FIXED_RECIPIENTS,
-      subject,
-      html,
-    });
+  await transporter.sendMail({
+    from: `"Renewal Alert" <jcs@jecc.ac.in>`,
+    to: FIXED_RECIPIENTS,
+    subject,
+    html,
+  });
 
-    console.log(`🚨 Expired mail sent for ${name} (${type}) - ${daysOverdue} days overdue (Was due: ${displayDate})`);
-  } catch (err) {
-    console.error("❌ Expired mail error:", err.message);
-  }
+  console.log(`🚨 Sent expired alert: ${name} (${type}) ${daysOverdue} days overdue`);
 }
 
 // ==================================================
-// ===== Core Reminder Logic (Reusable) =====
+// ===== Core Reminder Logic =====
 // ==================================================
-// =================== CORE REMINDER LOGIC ===================
 async function sendRemindersCore() {
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // normalize today to 00:00
+  today.setHours(0, 0, 0, 0);
 
-  try {
-    const allRenewals = await Renewal.find().lean();
-    console.log(`📊 Total renewals in database: ${allRenewals.length}`);
+  const allRenewals = await Renewal.find().lean();
+  console.log(`📊 Total renewals found: ${allRenewals.length}`);
 
-    let upcomingCount = 0;
-    let expiredCount = 0;
+  let upcomingCount = 0;
+  let expiredCount = 0;
 
-    for (const r of allRenewals) {
-      // Skip if already renewed
-      if (r.isRenewed) continue;
+  for (const r of allRenewals) {
+    if (r.isRenewed) continue; // Skip renewed ones
 
-      const recordDate = parseDate(r.renewalDate);
-      const diffDays = Math.ceil((recordDate - today) / (1000 * 60 * 60 * 24)); // days difference
+    const recordDate = parseDate(r.renewalDate);
+    const diffDays = Math.ceil((recordDate - today) / (1000 * 60 * 60 * 24));
 
-      // =================== UPCOMING RENEWALS ===================
-      // Send daily reminder if 0 < diffDays <= 15
-      if (diffDays > 0 && diffDays <= 15) {
-        await sendUpcomingMail(r.name, r.type, r.renewalDate, r.project, diffDays);
-        upcomingCount++;
-      }
-
-      // =================== EXPIRED RENEWALS ===================
-      // Send alert if renewal date has passed
-      if (diffDays < 0) {
-        await sendExpiredMail(r.name, r.type, r.renewalDate, r.project, Math.abs(diffDays));
-        expiredCount++;
-      }
+    // UPCOMING: including today
+    if (diffDays >= 0 && diffDays <= 15) {
+      await sendUpcomingMail(r.name, r.type, r.renewalDate, r.project, diffDays);
+      upcomingCount++;
     }
 
-    console.log(`📧 ${upcomingCount} upcoming reminder mails and ${expiredCount} expired alert mails sent successfully`);
-
-    return { upcoming: upcomingCount, expired: expiredCount };
-
-  } catch (err) {
-    console.error("❌ Reminder job error:", err.message);
-    return { upcoming: 0, expired: 0 };
+    // EXPIRED: past due
+    if (diffDays < 0) {
+      await sendExpiredMail(r.name, r.type, r.renewalDate, r.project, Math.abs(diffDays));
+      expiredCount++;
+    }
   }
+
+  console.log(`📧 Sent ${upcomingCount} upcoming and ${expiredCount} expired mails.`);
+  return { upcoming: upcomingCount, expired: expiredCount };
 }
 
 // ==================================================
-// ===== Cron Job (Every Day at 11:20 AM) =====
+// ===== Cron Job (Runs daily at 11:20 AM IST) =====
 // ==================================================
-cron.schedule("10 14 * * *", async () => {
-  console.log("⏰ Running daily auto reminder job at 11:20 AM...");
+cron.schedule("12 15 * * *", async () => {
+  console.log("⏰ Running daily auto reminder job (IST 3:12 PM)...");
   await sendRemindersCore();
+}, {
+  timezone: "Asia/Kolkata",
 });
 
 // ==================================================
